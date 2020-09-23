@@ -72,7 +72,6 @@ def train(args, extra_args):
             alg_kwargs['network'] = get_default_network(env_type)
 
     print('Training {} on {}:{} with arguments \n{}'.format(args.alg, env_type, env_id, alg_kwargs))
-
     model = learn(
         env=env,
         seed=seed,
@@ -109,7 +108,7 @@ def build_env(args):
         config.gpu_options.allow_growth = True
         get_session(config=config)
 
-        flatten_dict_observations = alg not in {'her'}
+        flatten_dict_observations = alg not in {'her', 'her_rs'}  # Add by Okudo 2020/9/7
         env = make_vec_env(env_id, env_type, args.num_env or 1, seed, reward_scale=args.reward_scale, flatten_dict_observations=flatten_dict_observations)
 
         if env_type == 'mujoco':
@@ -155,6 +154,7 @@ def get_alg_module(alg, submodule=None):
     submodule = submodule or alg
     try:
         # first try to import the alg module from baselines
+        print('.'.join(['baselines', alg, submodule]))
         alg_module = import_module('.'.join(['baselines', alg, submodule]))
     except ImportError:
         # then from rl_algs
@@ -174,7 +174,6 @@ def get_learn_function_defaults(alg, env_type):
     except (ImportError, AttributeError):
         kwargs = {}
     return kwargs
-
 
 
 def parse_cmdline_kwargs(args):
