@@ -4,7 +4,6 @@ import numpy as np
 import pickle
 
 from baselines.her_rs.util import convert_episode_to_batch_major, store_args
-from baselines.her_rs.reward_shaping import FixedSubgoalPotential
 
 
 class RolloutWorker:
@@ -65,6 +64,22 @@ class RolloutWorker:
         dones = []
         info_values = [np.empty((self.T - 1, self.rollout_batch_size, self.dims['info_' + key]), np.float32) for key in self.info_keys]
         Qs = []
+        obs4rs, achieved_goals4rs, goals4rs, t4rs, rewards4rs, new_obs4rs, new_achieved_goals4rs = [], [], [], [], [], [], []
+
+        # for shaping reward
+        episode4rs = dict(
+                            o=[],
+                            g=[],
+                            ag=[],
+                            t=[],
+                            r=[],
+                            no=[],
+                            nag=[]
+                        )
+        # 最初の状態をサブゴール未達状態の代表として用いる。
+        if self.reward_shaping is not None:
+            self.reward_shaping.start(self.obs_dict.copy())
+
         for t in range(self.T):
             policy_output = self.policy.get_actions(
                 o, ag, self.g,
@@ -94,7 +109,20 @@ class RolloutWorker:
 
             ## Okudo adds
             if self.reward_shaping is not None:
-                rs = self.reward_shaping.value(o, u, r, o_new, done)
+                rs = self.reward_shaping.value(r, obs_dict_new, done)
+                hr = self.reward_shaping.high_reward(r, o_new)
+                if self.reward_shaping.is_achieve(o_new) or done:
+                    # obsで達成前のサブゴール達成状態を取得
+                    subg_obs = self.reward_shaping.get_subg_obs()
+                    obs4rs.append(subg_obs['observation'].copy())
+                    achieved_goals4rs.append(subg_obs['achieved_goal'])
+                    goals4rs.append(subg_obs['desired_goal'])
+                    t4rs.append([[self.reward_shaping.get_t()]])
+                    rewards4rs.append([hr])
+                    new_obs4rs.append(o_new.copy())
+                    new_achieved_goals4rs.append(ag_new.copy())
+                if self.reward_shaping.is_achieve(o_new):
+                    self.reward_shaping.achieve(obs_dict_new)
             else:
                 rs = 0
             ##
@@ -115,7 +143,7 @@ class RolloutWorker:
                 return self.generate_rollouts()
 
             dones.append(done)
-            shaping_reward.append([[rs]])
+            shaping_reward.append(rs)
             obs.append(o.copy())
             achieved_goals.append(ag.copy())
             successes.append(success.copy())
@@ -127,9 +155,18 @@ class RolloutWorker:
         achieved_goals.append(ag.copy())
         shaping_reward = np.array(shaping_reward)
 
-        episode = dict(o=obs,
-                       u=acts,
-                       g=goals,
+        episode4rs = dict(
+            o=obs4rs,
+            g=goals4rs,
+            ag=achieved_goals4rs,
+            t=t4rs,
+            r=rewards4rs,
+            no=new_obs4rs,
+            nag=new_achieved_goals4rs
+        )
+        episode = dict(o=obs,  # (50, 1, 25)
+                       u=acts,  # (49, 1, 4)
+                       g=goals,  # (49, 1, 3)
                        ag=achieved_goals,
                        rs=shaping_reward)  # Okudo adds
         for key, value in zip(self.info_keys, info_values):
@@ -143,7 +180,9 @@ class RolloutWorker:
         if self.compute_Q:
             self.Q_history.append(np.mean(Qs))
         self.n_episodes += self.rollout_batch_size
-        return convert_episode_to_batch_major(episode)
+        ret_episode = convert_episode_to_batch_major(episode)
+        ret_episode4rs = convert_episode_to_batch_major(episode4rs)
+        return ret_episode, ret_episode4rs
 
     def clear_history(self):
         """Clears all histories that are used for statistics

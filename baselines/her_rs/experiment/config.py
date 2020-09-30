@@ -4,8 +4,8 @@ import gym
 
 from baselines import logger
 from baselines.her_rs.ddpg import DDPG
-from baselines.her_rs.her_sampler import make_sample_her_transitions
-from baselines.her_rs.reward_shaping import OnlineLearningRewardShaping, FixedSubgoalPotential
+from baselines.her_rs.her_sampler import make_sample_her_transitions, make_sample_transitions
+from baselines.her_rs.reward_shaping import OnlineLearningRewardShaping, DeepValueGradient
 from baselines.bench.monitor import Monitor
 
 DEFAULT_ENV_PARAMS = {
@@ -206,12 +206,12 @@ def configure_dims(params):
     return dims
 
 
-def configure_online_learning(params):
+def configure_online_learning(params, policy):
     env = cached_make_env(params['make_env'])
     env.reset()
     gamma = params['gamma']
     lr = params['ddpg_params']['Q_lr']
-    rs = OnlineLearningRewardShaping(gamma, lr, n_obs=env.observation_space['observation'].shape[0], subgoals=None)
+    rs = OnlineLearningRewardShaping(gamma, lr, n_obs=env.observation_space['observation'].shape[0], subgoals=None, policy=policy)
     return rs
 
 
@@ -223,3 +223,37 @@ def configure_subgoal_potential(params):
     rho = params['rs_params']['rho']
     rs = FixedSubgoalPotential(gamma, eta, rho, n_obs=env.observation_space['observation'].shape[0], subgoals=None)
     return rs
+
+
+def configure_deepvg(dims, params, reuse=False, use_mpi=True, clip_return=True):
+    sample_transitions = make_sample_transitions()
+    # Extract relevant parameters.
+    gamma = params['gamma']
+    rollout_batch_size = params['rollout_batch_size']
+    ddpg_params = params['ddpg_params']
+
+    input_dims = dims.copy()
+
+    # DDPG agent
+    env = cached_make_env(params['make_env'])
+    env.reset()
+    ddpg_params.update({'input_dims': input_dims,  # agent takes an input observations
+                        'T': params['T'],
+                        'clip_pos_returns': True,  # clip positive returns
+                        'clip_return': (1. / (1. - gamma)) if clip_return else np.inf,  # max abs of return
+                        'rollout_batch_size': rollout_batch_size,
+                        'subtract_goals': simple_goal_subtract,
+                        'sample_transitions': sample_transitions,
+                        'gamma': gamma,
+                        'bc_loss': params['bc_loss'],
+                        'q_filter': params['q_filter'],
+                        'num_demo': params['num_demo'],
+                        'demo_batch_size': params['demo_batch_size'],
+                        'prm_loss_weight': params['prm_loss_weight'],
+                        'aux_loss_weight': params['aux_loss_weight'],
+                        })
+    ddpg_params['info'] = {
+        'env_name': params['env_name'],
+    }
+    policy = DeepValueGradient(reuse=reuse, **ddpg_params, use_mpi=use_mpi)
+    return policy

@@ -43,8 +43,7 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
         transitions['g'][her_indexes] = future_ag
         # Okudo adds
         # Goalに達成している場合は0
-        transitions['rs'][her_indexes] = np.zeros(len(her_indexes))
-
+        # transitions['rs'][her_indexes] = np.zeros(len(her_indexes))
         transitions['rs'] = transitions['rs'].flatten()
 
         # Reconstruct info dictionary for reward  computation.
@@ -65,3 +64,33 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
         return transitions
 
     return _sample_her_transitions
+
+
+def make_sample_transitions():
+    """Creates a sample function that can be used for HER experience replay.
+
+    Args:
+        replay_strategy (in ['future', 'none']): the HER replay strategy; if set to 'none',
+            regular DDPG experience replay is used
+        replay_k (int): the ratio between HER replays and regular replays (e.g. k = 4 -> 4 times
+            as many HER replays as regular replays are used)
+        reward_fun (function): function to re-compute the reward with substituted goals
+    """
+
+    def _sample_transitions(episode_batch, batch_size_in_transitions):
+        """episode_batch is {key: array(buffer_size x T x dim_key)}
+        """
+        T = episode_batch['no'].shape[1]
+        rollout_batch_size = episode_batch['no'].shape[0]
+        batch_size = batch_size_in_transitions
+
+        # Select which episodes and time steps to use.
+        episode_idxs = np.random.randint(0, rollout_batch_size, batch_size)
+        t_samples = np.random.randint(T, size=batch_size)
+
+        transitions = {}
+        for key in episode_batch.keys():
+            transitions[key] = episode_batch[key][episode_idxs, t_samples].copy()
+        return transitions
+
+    return _sample_transitions

@@ -64,7 +64,6 @@ class DDPG(object):
         """
         if self.clip_return is None:
             self.clip_return = np.inf
-
         self.create_actor_critic = import_function(self.network_class)
 
         input_shapes = dims_to_shapes(self.input_dims)
@@ -73,16 +72,7 @@ class DDPG(object):
         self.dimu = self.input_dims['u']
 
         # Prepare staging area for feeding data to the model.
-        stage_shapes = OrderedDict()
-        for key in sorted(self.input_dims.keys()):
-            if key.startswith('info_'):
-                continue
-            stage_shapes[key] = (None, *input_shapes[key])
-        for key in ['o', 'g']:
-            stage_shapes[key + '_2'] = stage_shapes[key]
-        stage_shapes['r'] = (None,)
-        stage_shapes['rs'] = (None,)
-        self.stage_shapes = stage_shapes
+        self.init_stage_shapes(input_shapes)
 
         # Create network.
         with tf.variable_scope(self.scope):
@@ -107,6 +97,18 @@ class DDPG(object):
 
         global DEMO_BUFFER
         DEMO_BUFFER = ReplayBuffer(buffer_shapes, buffer_size, self.T, self.sample_transitions) #initialize the demo buffer; in the same way as the primary data buffer
+
+    def init_stage_shapes(self, input_shapes):
+        stage_shapes = OrderedDict()
+        for key in sorted(self.input_dims.keys()):
+            if key.startswith('info_'):
+                continue
+            stage_shapes[key] = (None, *input_shapes[key])
+        for key in ['o', 'g']:
+            stage_shapes[key + '_2'] = stage_shapes[key]
+        stage_shapes['r'] = (None,)
+        stage_shapes['rs'] = (None,)
+        self.stage_shapes = stage_shapes
 
     def _random_action(self, n):
         return np.random.uniform(low=-self.max_u, high=self.max_u, size=(n, self.dimu))
@@ -159,7 +161,7 @@ class DDPG(object):
             return ret
 
     def init_demo_buffer(self, demoDataFile, update_stats=True): #function that initializes the demo buffer
-
+        
         demoData = np.load(demoDataFile) #load the demonstration data from data file
         info_keys = [key.replace('info_', '') for key in self.input_dims.keys() if key.startswith('info_')]
         info_values = [np.empty((self.T - 1, 1, self.input_dims['info_' + key]), np.float32) for key in info_keys]
@@ -354,10 +356,11 @@ class DDPG(object):
         assert len(self._vars("main")) == len(self._vars("target"))
 
         # loss functions
-        target_Q_pi_tf = self.target.Q_pi_tf
-        clip_range = (-self.clip_return, 0. if self.clip_pos_returns else np.inf)
-        target_tf = tf.clip_by_value(batch_tf['r'] + self.gamma * target_Q_pi_tf, *clip_range)
-        self.Q_loss_tf = tf.reduce_mean(tf.square(tf.stop_gradient(target_tf) - self.main.Q_tf))
+        # target_Q_pi_tf = self.target.Q_pi_tf
+        # clip_range = (-self.clip_return, 0. if self.clip_pos_returns else np.inf)
+        # target_tf = tf.clip_by_value(batch_tf['r'] + self.gamma * target_Q_pi_tf, *clip_range)
+        # self.Q_loss_tf = tf.reduce_mean(tf.square(tf.stop_gradient(target_tf) - self.main.Q_tf))
+        self.Q_loss_tf = self._create_loss(batch_tf)
 
         if self.bc_loss ==1 and self.q_filter == 1 : # train with demonstrations and use bc_loss and q_filter both
             maskMain = tf.reshape(tf.boolean_mask(self.main.Q_tf > self.main.Q_pi_tf, mask), [-1]) #where is the demonstrator action better than actor action according to the critic? choose those samples only
@@ -403,6 +406,13 @@ class DDPG(object):
         tf.variables_initializer(self._global_vars('')).run()
         self._sync_optimizers()
         self._init_target_net()
+
+    def _create_loss(self, batch_tf):
+        target_Q_pi_tf = self.target.Q_pi_tf
+        clip_range = (-self.clip_return, 0. if self.clip_pos_returns else np.inf)
+        target_tf = tf.clip_by_value(batch_tf['r'] + self.gamma * target_Q_pi_tf, *clip_range)
+        return tf.reduce_mean(tf.square(tf.stop_gradient(target_tf) - self.main.Q_tf))
+
 
     def logs(self, prefix=''):
         logs = []

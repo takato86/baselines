@@ -19,7 +19,7 @@ def mpi_average(value):
     return mpi_moments(np.array(value))[0]
 
 
-def train(*, policy, rollout_worker, evaluator,
+def train(*, policy, subg_policy, rollout_worker, evaluator,
           n_epochs, n_test_rollouts, n_cycles, n_batches, policy_save_interval,
           save_path, demo_file, **kwargs):
     rank = MPI.COMM_WORLD.Get_rank()
@@ -33,15 +33,15 @@ def train(*, policy, rollout_worker, evaluator,
     best_success_rate = -1
 
     if policy.bc_loss == 1: policy.init_demo_buffer(demo_file) #initialize demo buffer if training with demonstrations
-
     # num_timesteps = n_epochs * n_cycles * rollout_length * number of rollout workers
     for epoch in range(n_epochs):
         # train
         rollout_worker.clear_history()
         for _ in range(n_cycles):
-            episode = rollout_worker.generate_rollouts()
+            episode, episode4rs = rollout_worker.generate_rollouts()
+            # TODO SubgDDPG or DeepQ for rsの作成。
             # subg_episode; episodeにサブゴール状態も含める。
-            # subg_policy.store_episode(subg_episode)
+            subg_policy.store_episode(episode4rs)
             policy.store_episode(episode)
             for _ in range(n_batches):
                 policy.train()
@@ -144,9 +144,13 @@ def learn(*, network, env, total_timesteps,
         logger.warn()
 
     dims = config.configure_dims(params)
-    subg_policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return)
-    reward_shaping = config.configure_online_learning(params=params)
+    subg_params = params.copy()
+    subg_params["ddpg_params"] = params["ddpg_params"].copy()
+    subg_params["ddpg_params"]["scope"] = "subg_ddpg"
+    subg_policy = config.configure_deepvg(dims=dims, params=subg_params, clip_return=clip_return)
+    reward_shaping = config.configure_online_learning(params=params, policy=subg_policy)
     # reward_shaping = config.configure_subgoal_potential(params=params)
+
     policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return)
     if load_path is not None:
         tf_util.load_variables(load_path)
@@ -176,13 +180,13 @@ def learn(*, network, env, total_timesteps,
     eval_env = eval_env or env
 
     rollout_worker = RolloutWorker(env, policy, dims, logger, monitor=True, reward_shaping=reward_shaping, **rollout_params)
-    evaluator = RolloutWorker(eval_env, policy, dims, logger, **eval_params)
+    evaluator = RolloutWorker(eval_env, policy, dims, logger, reward_shaping=reward_shaping, **eval_params)
 
     n_cycles = params['n_cycles']
     n_epochs = total_timesteps // n_cycles // rollout_worker.T // rollout_worker.rollout_batch_size
 
     return train(
-        save_path=save_path, policy=policy, rollout_worker=rollout_worker,
+        save_path=save_path, policy=policy, subg_policy=subg_policy, rollout_worker=rollout_worker,
         evaluator=evaluator, n_epochs=n_epochs, n_test_rollouts=params['n_test_rollouts'],
         n_cycles=params['n_cycles'], n_batches=params['n_batches'],
         policy_save_interval=policy_save_interval, demo_file=demo_file)
