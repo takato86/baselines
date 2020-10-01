@@ -43,7 +43,7 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
         transitions['g'][her_indexes] = future_ag
         # Okudo adds
         # Goalに達成している場合は0
-        transitions['rs'][her_indexes] = np.zeros(len(her_indexes))
+        # transitions['rs'][her_indexes] = np.zeros(len(her_indexes))
 
         transitions['rs'] = transitions['rs'].flatten()
 

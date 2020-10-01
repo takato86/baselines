@@ -36,18 +36,13 @@ def train(*, policy, rollout_worker, evaluator,
 
     # num_timesteps = n_epochs * n_cycles * rollout_length * number of rollout workers
     for epoch in range(n_epochs):
-        # train
         rollout_worker.clear_history()
         for _ in range(n_cycles):
             episode = rollout_worker.generate_rollouts()
-            # subg_episode; episodeにサブゴール状態も含める。
-            # subg_policy.store_episode(subg_episode)
             policy.store_episode(episode)
             for _ in range(n_batches):
                 policy.train()
-                # subg_policy.train()
             policy.update_target_net()
-            # subg_policy.update_target_net()
 
         # test
         evaluator.clear_history()
@@ -144,7 +139,6 @@ def learn(*, network, env, total_timesteps,
         logger.warn()
 
     dims = config.configure_dims(params)
-    subg_policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return)
     reward_shaping = config.configure_online_learning(params=params)
     # reward_shaping = config.configure_subgoal_potential(params=params)
     policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return)
