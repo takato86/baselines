@@ -5,7 +5,7 @@ import gym
 from baselines import logger
 from baselines.her_rs.ddpg import DDPG
 from baselines.her_rs.her_sampler import make_sample_her_transitions
-from baselines.her_rs.reward_shaping import OnlineLearningRewardShaping, FixedSubgoalPotential
+from baselines.her_rs.reward_shaping import OnlineLearningRewardShaping, FixedSubgoalPotential, NaiveSubgoalPotential
 from baselines.bench.monitor import Monitor
 
 DEFAULT_ENV_PARAMS = {
@@ -222,4 +222,13 @@ def configure_subgoal_potential(params):
     eta = params['rs_params']['eta']
     rho = params['rs_params']['rho']
     rs = FixedSubgoalPotential(gamma, eta, rho, n_obs=env.observation_space['observation'].shape[0], subgoals=None)
+    return rs
+
+
+def configure_naive_potential(params):
+    env = cached_make_env(params['make_env'])
+    env.reset()
+    gamma = params['gamma']
+    eta = params['rs_params']['eta']
+    rs = NaiveSubgoalPotential(gamma, eta, n_obs=env.observation_space['observation'].shape[0], subgoals=None)
     return rs
