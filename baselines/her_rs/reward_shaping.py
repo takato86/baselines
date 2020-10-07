@@ -32,17 +32,20 @@ def generate_subgoals(n_obs):
     # Subgoal1: Objectの絶対座標[x,y,z] = achieved_goal
     # Subgoal2: Objectの絶対座標とArmの位置が同じでアームを閉じている状態。
     subgoal1 = [None for _ in range(n_obs)]
-    subgoal1[6:8] = [0, 0]
+    # subgoal1[6:8] = [0, 0]
+    subgoal1[6:9] = [0, 0, 0]
     subgoal2 = [None for _ in range(n_obs)]
-    subgoal2[6:9] = [0, 0, 0]
+    # subgoal2[6:9] = [0, 0, 0]
+    subgoal2[6:11] = [0, 0, 0, 0.02, 0.02]
     return [subgoal1, subgoal2]
 
 class Subgoal:
     @store_args
-    def __init__(self, obs, range=0.05):
+    def __init__(self, obs, range=0.01):
         # self.grip_pos​ = obs[0:3]
         # self.object_pos​ = obs[3:6]
         self.object_rel_pos = obs[6:9]
+        self.gripper_state = obs[9:11]
         # self.gripper_state​ = obs[9:11]
         # self.object_rot​ = obs[11:14]
         # self.object_velp​ = obs[14:17]
@@ -59,7 +62,7 @@ class Subgoal:
 
     def equal(self, obs):
         object_rel_pos = obs[6:9]
-        for li, mi in zip(self.object_rel_pos, object_rel_pos):
+        for li, mi in zip(self.object_rel_pos + self.gripper_state, object_rel_pos):
             if li is None:
                 continue
             if mi < li - self.range or li + self.range < mi:
