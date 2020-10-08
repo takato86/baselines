@@ -134,6 +134,14 @@ class ValueReplayBuffer(ReplayBuffer):
         with self.lock:
             # load inputs into buffers
             idxs = self._get_storage_idx(batch_size)
+            # logger.info(self.buffers.keys())
             for key in self.buffers.keys():
-                self.buffers[key][idxs] = episode_batch[key]
+                # logger.info(key, episode_batch[key])
+                # logger.info(f"idxs: {idxs}")
+                # logger.info(self.buffers[key][idxs])
+                # logger.info('------------------------')
+                try:
+                    self.buffers[key][idxs] = episode_batch[key]
+                except:
+                    import pdb; pdb.set_trace()
             self.n_transitions_stored += batch_size * self.T

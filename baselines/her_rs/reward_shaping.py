@@ -41,7 +41,7 @@ def generate_subgoals(n_obs):
 
 class Subgoal:
     @store_args
-    def __init__(self, obs, range=0.01):
+    def __init__(self, id, obs, range=0.01):
         # self.grip_pos​ = obs[0:3]
         # self.object_pos​ = obs[3:6]
         self.object_rel_pos = obs[6:9]
@@ -61,12 +61,13 @@ class Subgoal:
         return self.next_subgoal
 
     def equal(self, obs):
-        object_rel_pos = obs[6:9]
+        object_rel_pos = obs[0][6:9]
         for li, mi in zip(self.object_rel_pos + self.gripper_state, object_rel_pos):
             if li is None:
                 continue
             if mi < li - self.range or li + self.range < mi:
                 return False
+        logger.info("Achieve the subgoal{}".format(self.id))
         return True
 
 
@@ -79,7 +80,7 @@ class OnlineLearningRewardShaping:
         self.subgoals = self.arange_subgoals(subgoals)
         self.reset_next_subgoal()
         self.dur_subg_state = 0
-        self.r_v = 0
+        self.r_v = np.array([0])
         self.subg_obs = None
         self.policy = policy
 
@@ -110,7 +111,7 @@ class OnlineLearningRewardShaping:
         self.target_subgoal = self.subgoals[0]
 
     def arange_subgoals(self, subgoals):
-        series = [Subgoal(s) for s in subgoals]
+        series = [Subgoal(i+1, s) for i, s in enumerate(subgoals)]
         for i in range(len(subgoals)-1):
             series[i].set_next(series[i+1])
         return series
@@ -130,19 +131,21 @@ class OnlineLearningRewardShaping:
     def get_subg_obs(self):
         return self.subg_obs
 
-    def high_reward(self, r, o):
-        self.r_v = self.gamma * self.r_v + r
-        if self.is_achieve(o):
-            reward = self.r_v
-            self.r_v = np.array([0])
+    def high_reward(self, r, o, done):
+        # self.r_v = self.gamma * self.r_v + sr
+        if self.is_achieve(o) or done:
+            reward = self.r_v.copy()
+            self.r_v = np.array([r], dtype=np.float32)
             return reward
         else:
-            return np.array([0])
+            self.r_v = self.r_v + self.gamma ** self.dur_subg_state * r
+            return np.array([0], dtype=np.float32)
 
     def start(self, obs):
         self.subg_obs = obs.copy()
 
     def reset(self):
+        # logger.info("Reset Subgoal Series")
         self.reset_next_subgoal()
         self.subg_obs = None
         self.dur_subg_state = 0

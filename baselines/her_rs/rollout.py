@@ -3,6 +3,7 @@ from collections import deque
 import numpy as np
 import pickle
 
+from baselines import logger
 from baselines.her_rs.util import convert_episode_to_batch_major, store_args
 
 
@@ -78,6 +79,7 @@ class RolloutWorker:
                         )
         # 最初の状態をサブゴール未達状態の代表として用いる。
         if self.reward_shaping is not None:
+            self.reward_shaping.reset()
             self.reward_shaping.start(self.obs_dict.copy())
 
         for t in range(self.T):
@@ -106,11 +108,12 @@ class RolloutWorker:
             o_new = obs_dict_new['observation']
             ag_new = obs_dict_new['achieved_goal']
             success = np.array([i.get('is_success', 0.0) for i in info])
-
+            
             ## Okudo adds
             if self.reward_shaping is not None:
                 rs = self.reward_shaping.value(r, obs_dict_new, done)
-                hr = self.reward_shaping.high_reward(r, o_new)
+                # done_v = done or (t == self.T - 1)
+                hr = self.reward_shaping.high_reward(r, o_new, done)
                 if self.reward_shaping.is_achieve(o_new) or done:
                     # obsで達成前のサブゴール達成状態を取得
                     subg_obs = self.reward_shaping.get_subg_obs()
@@ -118,7 +121,7 @@ class RolloutWorker:
                     achieved_goals4rs.append(subg_obs['achieved_goal'])
                     goals4rs.append(subg_obs['desired_goal'])
                     t4rs.append([[self.reward_shaping.get_t()]])
-                    rewards4rs.append([hr])
+                    rewards4rs.append(hr.tolist())
                     new_obs4rs.append(o_new.copy())
                     new_achieved_goals4rs.append(ag_new.copy())
                 if self.reward_shaping.is_achieve(o_new):
@@ -151,6 +154,7 @@ class RolloutWorker:
             goals.append(self.g.copy())
             o[...] = o_new
             ag[...] = ag_new
+        
         obs.append(o.copy())
         achieved_goals.append(ag.copy())
         shaping_reward = np.array(shaping_reward)
