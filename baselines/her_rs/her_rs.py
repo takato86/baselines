@@ -107,7 +107,11 @@ def learn(*, network, env, total_timesteps,
 
     # Prepare params.
     params = config.DEFAULT_PARAMS
-    params['rs_params'] = config.RS_PARAMS
+    # params['rs_params'] = config.RS_PARAMS
+    params['rs_params'] = {
+        'eta': kwargs['eta'],
+        'rho': kwargs['rho']
+    }
     env_name = env.spec.id
     params['env_name'] = env_name
     params['replay_strategy'] = replay_strategy
@@ -140,8 +144,8 @@ def learn(*, network, env, total_timesteps,
 
     dims = config.configure_dims(params)
     # reward_shaping = config.configure_online_learning(params=params)
-    # reward_shaping = config.configure_subgoal_potential(params=params)
-    reward_shaping = config.configure_naive_potential(params=params)
+    reward_shaping = config.configure_subgoal_potential(params=params)
+    # reward_shaping = config.configure_naive_potential(params=params)
     policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return)
     if load_path is not None:
         tf_util.load_variables(load_path)
@@ -171,7 +175,7 @@ def learn(*, network, env, total_timesteps,
     eval_env = eval_env or env
 
     rollout_worker = RolloutWorker(env, policy, dims, logger, monitor=True, reward_shaping=reward_shaping, **rollout_params)
-    evaluator = RolloutWorker(eval_env, policy, dims, logger, **eval_params)
+    evaluator = RolloutWorker(eval_env, policy, dims, logger, render=True, **eval_params)
 
     n_cycles = params['n_cycles']
     n_epochs = total_timesteps // n_cycles // rollout_worker.T // rollout_worker.rollout_batch_size

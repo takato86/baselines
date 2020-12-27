@@ -219,8 +219,11 @@ def configure_subgoal_potential(params):
     env = cached_make_env(params['make_env'])
     env.reset()
     gamma = params['gamma']
+    logger.info("Setting eta to {}".format(params['rs_params']['eta']))
     eta = params['rs_params']['eta']
+    logger.info("Setting rho to {}".format(params['rs_params']['rho']))
     rho = params['rs_params']['rho']
+    
     rs = FixedSubgoalPotential(gamma, eta, rho, n_obs=env.observation_space['observation'].shape[0], subgoals=None)
     return rs
 

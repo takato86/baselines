@@ -332,6 +332,7 @@ class DDPG(object):
                                 for i, key in enumerate(self.stage_shapes.keys())])
                                 
         batch_tf['r'] = tf.reshape(batch_tf['r'], [-1, 1])
+        batch_tf['rs'] = tf.reshape(batch_tf['rs'], [-1, 1])
 
         #choose only the demo buffer samples
         mask = np.concatenate((np.zeros(self.batch_size - self.demo_batch_size), np.ones(self.demo_batch_size)), axis = 0)
@@ -356,7 +357,7 @@ class DDPG(object):
         # loss functions
         target_Q_pi_tf = self.target.Q_pi_tf
         clip_range = (-self.clip_return, 0. if self.clip_pos_returns else np.inf)
-        target_tf = tf.clip_by_value(batch_tf['r'] + self.gamma * target_Q_pi_tf, *clip_range)
+        target_tf = tf.clip_by_value(batch_tf['r'] + batch_tf['rs'] + self.gamma * target_Q_pi_tf, *clip_range)
         self.Q_loss_tf = tf.reduce_mean(tf.square(tf.stop_gradient(target_tf) - self.main.Q_tf))
 
         if self.bc_loss ==1 and self.q_filter == 1 : # train with demonstrations and use bc_loss and q_filter both

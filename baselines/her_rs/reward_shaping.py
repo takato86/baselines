@@ -21,7 +21,7 @@ def generate_subgoals(n_obs):
 
 class Subgoal:
     @store_args
-    def __init__(self, obs, range=0.005):
+    def __init__(self, obs, range=0.008):
         # self.grip_pos​ = obs[0:3]
         # self.object_pos​ = obs[3:6]
         self.object_rel_pos = obs[6:9]
@@ -40,7 +40,8 @@ class Subgoal:
         return self.next_subgoal
 
     def equal(self, obs):
-        object_rel_pos = obs[6:11]
+        object_rel_pos = obs[0][6:11]
+        assert len(object_rel_pos) == 5
         for li, mi in zip(self.object_rel_pos + self.gripper_state, object_rel_pos):
             if li is None:
                 continue
@@ -62,12 +63,12 @@ class SubgoalPotentialRewardShaping:
         self.dur_subg_state = 0
 
     def value(self, last_obs, action, reward, obs, done):
+        self.prev_state = self.subg_state
         if self.target_subgoal is not None and self.target_subgoal.equal(obs):
-            # logger.info("Reach Subgoal{}!".format(self.subg_state))
+            logger.info("Reach Subgoal{} at {}, state: {} in subg: {}!".format(self.subg_state, self.dur_subg_state, obs[0][6:11], self.target_subgoal.object_rel_pos+self.target_subgoal.gripper_state))
             self.target_subgoal = self.target_subgoal.get_next()
-            self.prev_state = self.subg_state
             self.subg_state += 1
-            # dur_subg_stateのリセットタイミングはアルゴリズムに依るので、小クラスで実装。
+            # dur_subg_stateのリセットタイミングはアルゴリズムに依るので、子クラスで実装。
         self.dur_subg_state += 1
         self.train(last_obs, action, reward, obs, done)
         current_potential = self.potential()
@@ -121,6 +122,10 @@ class FixedSubgoalPotential(SubgoalPotentialRewardShaping):
     def potential(self):
         if self.prev_state != self.subg_state:
             self.dur_subg_state = 0
+        if self.subg_state > 0:
+            logger.info("prev: {}, current: {}".format(self.prev_state, self.subg_state))
+            logger.info("eta: {}, rho: {}".format(self.eta, self.rho))
+            logger.info(self.subg_state * self.eta, self.dur_subg_state * self.rho)
         return max(self.subg_state * self.eta - self.dur_subg_state * self.rho, 0)
 
 
@@ -145,6 +150,7 @@ class OnlineLearningRewardShaping(SubgoalPotentialRewardShaping):
         return self.v[self.subg_state]
 
 
+
 def main():
     gamma = 0.99
     eta = 1
@@ -160,7 +166,6 @@ def main():
         obs, r, done, _ = env.step(action)
         logger.info(r)
         obs = obs["observation"]
-        # import pdb; pdb.set_trace()
         v = rs.value(pre_obs, action, r, obs, done)
         env.render()
         # if v != 0:
@@ -172,4 +177,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
