@@ -4,8 +4,6 @@ import numpy as np
 import pickle
 
 from baselines.her_rs.util import convert_episode_to_batch_major, store_args
-from baselines.her_rs.reward_shaping import FixedSubgoalPotential
-
 
 class RolloutWorker:
 
@@ -94,7 +92,8 @@ class RolloutWorker:
 
             ## Okudo adds
             if self.reward_shaping is not None:
-                rs = self.reward_shaping.value(o, u, r, o_new, done)
+                rs = self.reward_shaping.perform(o[0], o_new[0], r[0], done)
+                # self.logger.info("Reward Shaping {}".format(rs))
             else:
                 rs = 0
             ##

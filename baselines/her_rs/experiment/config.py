@@ -5,8 +5,8 @@ import gym
 from baselines import logger
 from baselines.her_rs.ddpg import DDPG
 from baselines.her_rs.her_sampler import make_sample_her_transitions
-from baselines.her_rs.reward_shaping import OnlineLearningRewardShaping, FixedSubgoalPotential, NaiveSubgoalPotential
 from baselines.bench.monitor import Monitor
+from shaner import SarsaRS
 
 DEFAULT_ENV_PARAMS = {
     'FetchReach-v1': {
@@ -55,10 +55,12 @@ DEFAULT_PARAMS = {
     'aux_loss_weight':  0.0078, #Weight corresponding to the auxilliary loss also called the cloning loss
 }
 
-RS_PARAMS = {
-    'eta': 0.1,
-    'rho': 0.01
+SHAPING_PARAMS = {
+    'vid': 'table',
+    'clip_range': DEFAULT_PARAMS['norm_clip']  # このサイズで観測を標準化
 }
+
+
 
 CACHED_ENVS = {}
 
@@ -206,32 +208,11 @@ def configure_dims(params):
     return dims
 
 
-def configure_online_learning(params):
+def configure_sarsa_rs(params):
     env = cached_make_env(params['make_env'])
     env.reset()
     gamma = params['gamma']
     lr = params['ddpg_params']['Q_lr']
-    rs = OnlineLearningRewardShaping(gamma, lr, n_obs=env.observation_space['observation'].shape[0], subgoals=None)
+    rs = SarsaRS(gamma, lr, env, params['shaping'])
     return rs
 
-
-def configure_subgoal_potential(params):
-    env = cached_make_env(params['make_env'])
-    env.reset()
-    gamma = params['gamma']
-    logger.info("Setting eta to {}".format(params['rs_params']['eta']))
-    eta = params['rs_params']['eta']
-    logger.info("Setting rho to {}".format(params['rs_params']['rho']))
-    rho = params['rs_params']['rho']
-    
-    rs = FixedSubgoalPotential(gamma, eta, rho, n_obs=env.observation_space['observation'].shape[0], subgoals=None)
-    return rs
-
-
-def configure_naive_potential(params):
-    env = cached_make_env(params['make_env'])
-    env.reset()
-    gamma = params['gamma']
-    eta = params['rs_params']['eta']
-    rs = NaiveSubgoalPotential(gamma, eta, n_obs=env.observation_space['observation'].shape[0], subgoals=None)
-    return rs

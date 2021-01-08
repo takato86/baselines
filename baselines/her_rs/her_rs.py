@@ -107,11 +107,8 @@ def learn(*, network, env, total_timesteps,
 
     # Prepare params.
     params = config.DEFAULT_PARAMS
-    # params['rs_params'] = config.RS_PARAMS
-    params['rs_params'] = {
-        'eta': kwargs['eta'],
-        'rho': kwargs['rho']
-    }
+    params['shaping'] = config.SHAPING_PARAMS
+
     env_name = env.spec.id
     params['env_name'] = env_name
     params['replay_strategy'] = replay_strategy
@@ -143,9 +140,8 @@ def learn(*, network, env, total_timesteps,
         logger.warn()
 
     dims = config.configure_dims(params)
-    # reward_shaping = config.configure_online_learning(params=params)
-    reward_shaping = config.configure_subgoal_potential(params=params)
-    # reward_shaping = config.configure_naive_potential(params=params)
+    reward_shaping = config.configure_sarsa_rs(params=params)
+    # reward_shaping = config.configure_subgoal_potential(params=params)
     policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return)
     if load_path is not None:
         tf_util.load_variables(load_path)
@@ -195,8 +191,6 @@ def learn(*, network, env, total_timesteps,
 @click.option('--replay_strategy', type=click.Choice(['future', 'none']), default='future', help='the HER replay strategy to be used. "future" uses HER, "none" disables HER.')
 @click.option('--clip_return', type=int, default=1, help='whether or not returns should be clipped')
 @click.option('--demo_file', type=str, default = 'PATH/TO/DEMO/DATA/FILE.npz', help='demo data file path')
-@click.option('--eta', type=float, default=0.1)
-@click.option('--rho', type=float, default=0.001)
 def main(**kwargs):
     learn(**kwargs)
 
