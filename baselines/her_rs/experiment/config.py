@@ -57,7 +57,11 @@ DEFAULT_PARAMS = {
 
 SHAPING_PARAMS = {
     'vid': 'table',
-    'clip_range': DEFAULT_PARAMS['norm_clip']  # このサイズで観測を標準化
+    'aggr_id': 'disc',
+    'params': {
+        'n': 2,
+        'clip_range': DEFAULT_PARAMS['norm_clip']  # このサイズで観測を標準化
+    }
 }
 
 
@@ -213,6 +217,7 @@ def configure_sarsa_rs(params):
     env.reset()
     gamma = params['gamma']
     lr = params['ddpg_params']['Q_lr']
+    params['shaping']['params']['env'] = env
     rs = SarsaRS(gamma, lr, env, params['shaping'])
     return rs
 
