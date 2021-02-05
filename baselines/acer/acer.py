@@ -64,15 +64,15 @@ class Model(object):
         nact = ac_space.n
         nbatch = nenvs * nsteps
 
-        A = tf.placeholder(tf.int32, [nbatch]) # actions
-        D = tf.placeholder(tf.float32, [nbatch]) # dones
-        R = tf.placeholder(tf.float32, [nbatch]) # rewards, not returns
-        MU = tf.placeholder(tf.float32, [nbatch, nact]) # mu's
-        LR = tf.placeholder(tf.float32, [])
+        A = tf.compat.v1.placeholder(tf.int32, [nbatch]) # actions
+        D = tf.compat.v1.placeholder(tf.float32, [nbatch]) # dones
+        R = tf.compat.v1.placeholder(tf.float32, [nbatch]) # rewards, not returns
+        MU = tf.compat.v1.placeholder(tf.float32, [nbatch, nact]) # mu's
+        LR = tf.compat.v1.placeholder(tf.float32, [])
         eps = 1e-6
 
-        step_ob_placeholder = tf.placeholder(dtype=ob_space.dtype, shape=(nenvs,) + ob_space.shape)
-        train_ob_placeholder = tf.placeholder(dtype=ob_space.dtype, shape=(nenvs*(nsteps+1),) + ob_space.shape)
+        step_ob_placeholder = tf.compat.v1.placeholder(dtype=ob_space.dtype, shape=(nenvs,) + ob_space.shape)
+        train_ob_placeholder = tf.compat.v1.placeholder(dtype=ob_space.dtype, shape=(nenvs*(nsteps+1),) + ob_space.shape)
         with tf.variable_scope('acer_model', reuse=tf.AUTO_REUSE):
 
             step_model = policy(nbatch=nenvs, nsteps=1, observ_placeholder=step_ob_placeholder, sess=sess)

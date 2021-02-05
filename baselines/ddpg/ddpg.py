@@ -12,11 +12,17 @@ import baselines.common.tf_util as U
 
 from baselines import logger
 import numpy as np
+import shaner
 
 try:
     from mpi4py import MPI
 except ImportError:
     MPI = None
+
+
+# TODO 
+# Shapingのコードを追加。
+# 引数にShaping関連のパラメータを追加。
 
 def learn(network, env,
           seed=None,
@@ -91,6 +97,7 @@ def learn(network, env,
         batch_size=batch_size, action_noise=action_noise, param_noise=param_noise, critic_l2_reg=critic_l2_reg,
         actor_lr=actor_lr, critic_lr=critic_lr, enable_popart=popart, clip_norm=clip_norm,
         reward_scale=reward_scale)
+    
     logger.info('Using agent with the following configuration:')
     logger.info(str(agent.__dict__.items()))
 

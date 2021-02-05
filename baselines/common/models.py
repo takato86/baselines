@@ -164,8 +164,8 @@ def lstm(nlstm=128, layer_norm=False):
 
         h = tf.layers.flatten(X)
 
-        M = tf.placeholder(tf.float32, [nbatch]) #mask (done t-1)
-        S = tf.placeholder(tf.float32, [nenv, 2*nlstm]) #states
+        M = tf.compat.v1.placeholder(tf.float32, [nbatch]) #mask (done t-1)
+        S = tf.compat.v1.placeholder(tf.float32, [nenv, 2*nlstm]) #states
 
         xs = batch_to_seq(h, nenv, nsteps)
         ms = batch_to_seq(M, nenv, nsteps)
@@ -191,8 +191,8 @@ def cnn_lstm(nlstm=128, layer_norm=False, conv_fn=nature_cnn, **conv_kwargs):
 
         h = conv_fn(X, **conv_kwargs)
 
-        M = tf.placeholder(tf.float32, [nbatch]) #mask (done t-1)
-        S = tf.placeholder(tf.float32, [nenv, 2*nlstm]) #states
+        M = tf.compat.v1.placeholder(tf.float32, [nbatch]) #mask (done t-1)
+        S = tf.compat.v1.placeholder(tf.float32, [nenv, 2*nlstm]) #states
 
         xs = batch_to_seq(h, nenv, nsteps)
         ms = batch_to_seq(M, nenv, nsteps)

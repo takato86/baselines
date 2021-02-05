@@ -122,8 +122,8 @@ def learn(env, policy_func, reward_giver, expert_dataset, rank,
     ac_space = env.action_space
     pi = policy_func("pi", ob_space, ac_space, reuse=(pretrained_weight != None))
     oldpi = policy_func("oldpi", ob_space, ac_space)
-    atarg = tf.placeholder(dtype=tf.float32, shape=[None])  # Target advantage function (if applicable)
-    ret = tf.placeholder(dtype=tf.float32, shape=[None])  # Empirical return
+    atarg = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None])  # Target advantage function (if applicable)
+    ret = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None])  # Empirical return
 
     ob = U.get_placeholder_cached(name="ob")
     ac = pi.pdtype.sample_placeholder([None])
@@ -155,7 +155,7 @@ def learn(env, policy_func, reward_giver, expert_dataset, rank,
     get_flat = U.GetFlat(var_list)
     set_from_flat = U.SetFromFlat(var_list)
     klgrads = tf.gradients(dist, var_list)
-    flat_tangent = tf.placeholder(dtype=tf.float32, shape=[None], name="flat_tan")
+    flat_tangent = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None], name="flat_tan")
     shapes = [var.get_shape().as_list() for var in var_list]
     start = 0
     tangents = []
@@ -166,7 +166,7 @@ def learn(env, policy_func, reward_giver, expert_dataset, rank,
     gvp = tf.add_n([tf.reduce_sum(g*tangent) for (g, tangent) in zipsame(klgrads, tangents)])  # pylint: disable=E1111
     fvp = U.flatgrad(gvp, var_list)
 
-    assign_old_eq_new = U.function([], [], updates=[tf.assign(oldv, newv)
+    assign_old_eq_new = U.function([], [], updates=[tf.compat.v1.assign(oldv, newv)
                                                     for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
     compute_losses = U.function([ob, ac, atarg], losses)
     compute_lossandgrad = U.function([ob, ac, atarg], losses + [U.flatgrad(optimgain, var_list)])
@@ -234,7 +234,7 @@ def learn(env, policy_func, reward_giver, expert_dataset, rank,
             fname = os.path.join(ckpt_dir, task_name)
             os.makedirs(os.path.dirname(fname), exist_ok=True)
             saver = tf.train.Saver()
-            saver.save(tf.get_default_session(), fname)
+            saver.save(tf.compat.v1.get_default_session(), fname)
 
         logger.log("********** Iteration %i ************" % iters_so_far)
 

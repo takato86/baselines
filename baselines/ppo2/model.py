@@ -44,15 +44,15 @@ class Model(object):
 
         # CREATE THE PLACEHOLDERS
         self.A = A = train_model.pdtype.sample_placeholder([None])
-        self.ADV = ADV = tf.placeholder(tf.float32, [None])
-        self.R = R = tf.placeholder(tf.float32, [None])
+        self.ADV = ADV = tf.compat.v1.placeholder(tf.float32, [None])
+        self.R = R = tf.compat.v1.placeholder(tf.float32, [None])
         # Keep track of old actor
-        self.OLDNEGLOGPAC = OLDNEGLOGPAC = tf.placeholder(tf.float32, [None])
+        self.OLDNEGLOGPAC = OLDNEGLOGPAC = tf.compat.v1.placeholder(tf.float32, [None])
         # Keep track of old critic
-        self.OLDVPRED = OLDVPRED = tf.placeholder(tf.float32, [None])
-        self.LR = LR = tf.placeholder(tf.float32, [])
+        self.OLDVPRED = OLDVPRED = tf.compat.v1.placeholder(tf.float32, [None])
+        self.LR = LR = tf.compat.v1.placeholder(tf.float32, [])
         # Cliprange
-        self.CLIPRANGE = CLIPRANGE = tf.placeholder(tf.float32, [])
+        self.CLIPRANGE = CLIPRANGE = tf.compat.v1.placeholder(tf.float32, [])
 
         neglogpac = train_model.pd.neglogp(A)
 

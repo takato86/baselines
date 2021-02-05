@@ -107,10 +107,10 @@ def learn(*, network, env, total_timesteps,
 
     # Prepare params.
     params = config.DEFAULT_PARAMS
-    params['shaping'] = config.SHAPING_PARAMS
-
+    
     env_name = env.spec.id
     params['env_name'] = env_name
+    params['initial_goal_seed'] = seed
     params['replay_strategy'] = replay_strategy
 
     if env_name in config.DEFAULT_ENV_PARAMS:
@@ -140,9 +140,22 @@ def learn(*, network, env, total_timesteps,
         logger.warn()
 
     dims = config.configure_dims(params)
-    reward_shaping = config.configure_sarsa_rs(params=params)
-    # reward_shaping = config.configure_subgoal_potential(params=params)
-    policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return)
+    # Selection of the shaping method
+    param_shaping = params.get("shaping")
+    if param_shaping is None:
+        reward_shaping = None
+    elif "sarsa-rs" in param_shaping:
+        reward_shaping = config.configure_sarsa_rs(params=params)
+    elif "dta" in param_shaping:
+        reward_shaping = config.configure_dta(params=params)
+    elif "srs" in param_shaping:
+        reward_shaping = config.configure_srs(params=params)
+    elif "nrs" in param_shaping:
+        reward_shaping = config.configure_nrs(params=params)
+    else:
+        reward_shaping = None
+    policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, is_ddpg=params["is_ddpg"])
+
     if load_path is not None:
         tf_util.load_variables(load_path)
 
@@ -191,6 +204,11 @@ def learn(*, network, env, total_timesteps,
 @click.option('--replay_strategy', type=click.Choice(['future', 'none']), default='future', help='the HER replay strategy to be used. "future" uses HER, "none" disables HER.')
 @click.option('--clip_return', type=int, default=1, help='whether or not returns should be clipped')
 @click.option('--demo_file', type=str, default = 'PATH/TO/DEMO/DATA/FILE.npz', help='demo data file path')
+@click.option('--eta', type=float, default=10.0)
+@click.option('--rho', type=float, default=0.0)
+@click.option('--shaping', type=str, default=None)
+@click.option('--vinit', type=float, default=None)
+@click.option('--is_ddpg', type=bool, is_flag=True)
 def main(**kwargs):
     learn(**kwargs)
 

@@ -93,10 +93,10 @@ def learn(env, policy_fn, *,
     ac_space = env.action_space
     pi = policy_fn("pi", ob_space, ac_space) # Construct network for new policy
     oldpi = policy_fn("oldpi", ob_space, ac_space) # Network for old policy
-    atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
-    ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
+    atarg = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
+    ret = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
 
-    lrmult = tf.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
+    lrmult = tf.compat.v1.placeholder(name='lrmult', dtype=tf.float32, shape=[]) # learning rate multiplier, updated with schedule
 
     ob = U.get_placeholder_cached(name="ob")
     ac = pi.pdtype.sample_placeholder([None])
@@ -120,7 +120,7 @@ def learn(env, policy_fn, *,
     lossandgrad = U.function([ob, ac, atarg, ret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
     adam = MpiAdam(var_list, epsilon=adam_epsilon)
 
-    assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
+    assign_old_eq_new = U.function([],[], updates=[tf.compat.v1.assign(oldv, newv)
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
     compute_losses = U.function([ob, ac, atarg, ret, lrmult], losses)
 

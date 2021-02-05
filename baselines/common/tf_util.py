@@ -50,7 +50,7 @@ def huber_loss(x, delta=1.0):
 
 def get_session(config=None):
     """Get default session or create one with a given config"""
-    sess = tf.get_default_session()
+    sess = tf.compat.v1.get_default_session()
     if sess is None:
         sess = make_session(config=config, make_default=True)
     return sess
@@ -60,14 +60,14 @@ def make_session(config=None, num_cpu=None, make_default=False, graph=None):
     if num_cpu is None:
         num_cpu = int(os.getenv('RCALL_NUM_CPU', multiprocessing.cpu_count()))
     if config is None:
-        config = tf.ConfigProto(
+        config = tf.compat.v1.ConfigProto(
             allow_soft_placement=True,
             inter_op_parallelism_threads=num_cpu,
             intra_op_parallelism_threads=num_cpu)
         config.gpu_options.allow_growth = True
 
     if make_default:
-        return tf.InteractiveSession(config=config, graph=graph)
+        return tf.compat.v1.InteractiveSession(config=config, graph=graph)
     else:
         return tf.Session(config=config, graph=graph)
 
@@ -144,8 +144,8 @@ def function(inputs, outputs, updates=None, givens=None):
     on placeholder name (passed to constructor or accessible via placeholder.op.name).
 
     Example:
-        x = tf.placeholder(tf.int32, (), name="x")
-        y = tf.placeholder(tf.int32, (), name="y")
+        x = tf.compat.v1.placeholder(tf.int32, (), name="x")
+        y = tf.compat.v1.placeholder(tf.int32, (), name="y")
         z = 3 * x + 2 * y
         lin = function([x, y], z, givens={y: 0})
 
@@ -159,7 +159,7 @@ def function(inputs, outputs, updates=None, givens=None):
 
     Parameters
     ----------
-    inputs: [tf.placeholder, tf.constant, or object with make_feed_dict method]
+    inputs: [tf.compat.v1.placeholder, tf.constant, or object with make_feed_dict method]
         list of input arguments
     outputs: [tf.Variable] or tf.Variable
         list of outputs or a single output to be returned from function. Returned
@@ -242,24 +242,24 @@ class SetFromFlat(object):
         shapes = list(map(var_shape, var_list))
         total_size = np.sum([intprod(shape) for shape in shapes])
 
-        self.theta = theta = tf.placeholder(dtype, [total_size])
+        self.theta = theta = tf.compat.v1.placeholder(dtype, [total_size])
         start = 0
         assigns = []
         for (shape, v) in zip(shapes, var_list):
             size = intprod(shape)
-            assigns.append(tf.assign(v, tf.reshape(theta[start:start + size], shape)))
+            assigns.append(tf.compat.v1.assign(v, tf.reshape(theta[start:start + size], shape)))
             start += size
         self.op = tf.group(*assigns)
 
     def __call__(self, theta):
-        tf.get_default_session().run(self.op, feed_dict={self.theta: theta})
+        tf.compat.v1.get_default_session().run(self.op, feed_dict={self.theta: theta})
 
 class GetFlat(object):
     def __init__(self, var_list):
         self.op = tf.concat(axis=0, values=[tf.reshape(v, [numel(v)]) for v in var_list])
 
     def __call__(self):
-        return tf.get_default_session().run(self.op)
+        return tf.compat.v1.get_default_session().run(self.op)
 
 def flattenallbut0(x):
     return tf.reshape(x, [-1, intprod(x.get_shape().as_list()[1:])])
@@ -278,7 +278,7 @@ def get_placeholder(name, dtype, shape):
                 'Placeholder with name {} has already been registered and has shape {}, different from requested {}'.format(name, shape1, shape)
             return out
 
-    out = tf.placeholder(dtype=dtype, shape=shape, name=name)
+    out = tf.compat.v1.placeholder(dtype=dtype, shape=shape, name=name)
     _PLACEHOLDER_CACHE[name] = (out, dtype, shape)
     return out
 
@@ -327,7 +327,7 @@ def load_state(fname, sess=None):
     logger.warn('load_state method is deprecated, please use load_variables instead')
     sess = sess or get_session()
     saver = tf.train.Saver()
-    saver.restore(tf.get_default_session(), fname)
+    saver.restore(tf.compat.v1.get_default_session(), fname)
 
 def save_state(fname, sess=None):
     from baselines import logger
@@ -337,7 +337,7 @@ def save_state(fname, sess=None):
     if any(dirname):
         os.makedirs(dirname, exist_ok=True)
     saver = tf.train.Saver()
-    saver.save(tf.get_default_session(), fname)
+    saver.save(tf.compat.v1.get_default_session(), fname)
 
 # The methods above and below are clearly doing the same thing, and in a rather similar way
 # TODO: ensure there is no subtle differences and remove one
@@ -435,7 +435,7 @@ def launch_tensorboard_in_background(log_dir):
             summary_writer = tf.summary.FileWriter(tb_path, graph=session.graph)
             summary_op = tf.summary.merge_all()
             launch_tensorboard_in_background(tb_path)
-        session = tf.get_default_session()
+        session = tf.compat.v1.get_default_session()
         t = threading.Thread(target=start_tensorboard, args=([session]))
         t.start()
     '''

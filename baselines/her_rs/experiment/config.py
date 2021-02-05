@@ -4,9 +4,10 @@ import gym
 
 from baselines import logger
 from baselines.her_rs.ddpg import DDPG
-from baselines.her_rs.her_sampler import make_sample_her_transitions
+from baselines.her_rs.her_sampler import make_sample_her_transitions, make_sample_ddpg_transitions
 from baselines.bench.monitor import Monitor
-from shaner import SarsaRS
+from shaner import SarsaRS, SubgoalRS, NaiveSRS
+
 
 DEFAULT_ENV_PARAMS = {
     'FetchReach-v1': {
@@ -55,16 +56,6 @@ DEFAULT_PARAMS = {
     'aux_loss_weight':  0.0078, #Weight corresponding to the auxilliary loss also called the cloning loss
 }
 
-SHAPING_PARAMS = {
-    'vid': 'table',
-    'aggr_id': 'disc',
-    'params': {
-        'n': 2,
-        'clip_range': DEFAULT_PARAMS['norm_clip']  # このサイズで観測を標準化
-    }
-}
-
-
 
 CACHED_ENVS = {}
 
@@ -87,7 +78,11 @@ def prepare_params(kwargs):
     env_name = kwargs['env_name']
 
     def make_env(subrank=None):
-        env = gym.make(env_name)
+        if "SingleFetchPickAndPlace" in env_name:
+            env = gym.make(env_name, initial_goal_seed=kwargs["initial_goal_seed"])
+        else:
+            env = gym.make(env_name)
+
         if subrank is not None and logger.get_dir() is not None:
             try:
                 from mpi4py import MPI
@@ -155,13 +150,37 @@ def configure_her(params):
     return sample_her_transitions
 
 
+def configure_random_sampler(params):
+    env = cached_make_env(params['make_env'])
+    env.reset()
+
+    def reward_fun(ag_2, g, info):  # vectorized
+        return env.compute_reward(achieved_goal=ag_2, desired_goal=g, info=info)
+
+    # Prepare configuration for HER.
+    ddpg_params = {
+        'reward_fun': reward_fun,
+    }
+    for name in ['replay_strategy', 'replay_k']:
+        ddpg_params[name] = params[name]
+        params['_' + name] = ddpg_params[name]
+        del params[name]
+    sample_transitions = make_sample_ddpg_transitions(**ddpg_params)
+
+    return sample_transitions
+
+
 def simple_goal_subtract(a, b):
     assert a.shape == b.shape
     return a - b
 
 
-def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True):
-    sample_her_transitions = configure_her(params)
+def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True, is_ddpg=True):
+    if is_ddpg:
+        sample_transitions = configure_random_sampler(params)
+    else:
+        sample_transitions = configure_her(params)
+
     # Extract relevant parameters.
     gamma = params['gamma']
     rollout_batch_size = params['rollout_batch_size']
@@ -178,7 +197,7 @@ def configure_ddpg(dims, params, reuse=False, use_mpi=True, clip_return=True):
                         'clip_return': (1. / (1. - gamma)) if clip_return else np.inf,  # max abs of return
                         'rollout_batch_size': rollout_batch_size,
                         'subtract_goals': simple_goal_subtract,
-                        'sample_transitions': sample_her_transitions,
+                        'sample_transitions': sample_transitions,
                         'gamma': gamma,
                         'bc_loss': params['bc_loss'],
                         'q_filter': params['q_filter'],
@@ -217,7 +236,76 @@ def configure_sarsa_rs(params):
     env.reset()
     gamma = params['gamma']
     lr = params['ddpg_params']['Q_lr']
-    params['shaping']['params']['env'] = env
-    rs = SarsaRS(gamma, lr, env, params['shaping'])
+    shaping_params = {
+        'vid': 'table',
+        'aggr_id': 'disc',
+        'params': {
+            'n': 2,
+            'env': env,
+            'clip_range': DEFAULT_PARAMS["ddpg_params"]['norm_clip']  # このサイズで観測を標準化
+        }
+    }
+    rs = SarsaRS(gamma, lr, env, shaping_params)
     return rs
 
+
+def configure_dta(params):
+    env = cached_make_env(params['make_env'])
+    env.reset()
+    gamma = params['gamma']
+    lr = params['ddpg_params']['Q_lr']
+    n_obs = env.observation_space['observation'].shape[0]
+    shaping_params = {
+        'vid': 'table',
+        'aggr_id': 'dta',
+        'values': {i: params['vinit'] for i in range(n_obs)},
+        'params': {
+            "env_id": env.spec.id,
+            "n_obs": 25,
+            "_range": 0.01
+        }
+    }
+    rs = SarsaRS(gamma, lr, env, shaping_params)
+    return rs
+
+
+def configure_srs(params):
+    env = cached_make_env(params['make_env'])
+    env.reset()
+    gamma = params['gamma']
+    lr = params['ddpg_params']['Q_lr']
+    n_obs = env.observation_space['observation'].shape[0]
+    shaping_params = {
+        "eta": params['eta'],
+        "rho": params['rho'],
+        "env_id": env.spec.id,
+        'vid': 'table',
+        'aggr_id': 'dta',
+        "params": {
+            "env_id": env.spec.id,
+            "_range": 0.01,
+            "n_obs": n_obs,
+        } 
+    }
+    rs = SubgoalRS(gamma, lr, env, shaping_params)
+    return rs
+
+def configure_nrs(params):
+    env = cached_make_env(params['make_env'])
+    env.reset()
+    gamma = params['gamma']
+    lr = params['ddpg_params']['Q_lr']
+    shaping_params = {
+        "eta": params['eta'],
+        "rho": params['rho'],
+        "env_id": env.spec.id,
+        'vid': 'table',
+        'aggr_id': 'dta',
+        "params": {
+            "env_id": env.spec.id,
+            "_range": 0.01,
+            "n_obs": env.observation_space['observation'].shape[0],
+        } 
+    }
+    rs = NaiveSRS(gamma, lr, env, shaping_params)
+    return rs

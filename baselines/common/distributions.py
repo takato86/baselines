@@ -49,9 +49,9 @@ class PdType(object):
         raise NotImplementedError
 
     def param_placeholder(self, prepend_shape, name=None):
-        return tf.placeholder(dtype=tf.float32, shape=prepend_shape+self.param_shape(), name=name)
+        return tf.compat.v1.placeholder(dtype=tf.float32, shape=prepend_shape+self.param_shape(), name=name)
     def sample_placeholder(self, prepend_shape, name=None):
-        return tf.placeholder(dtype=self.sample_dtype(), shape=prepend_shape+self.sample_shape(), name=name)
+        return tf.compat.v1.placeholder(dtype=self.sample_dtype(), shape=prepend_shape+self.sample_shape(), name=name)
 
     def __eq__(self, other):
         return (type(self) == type(other)) and (self.__dict__ == other.__dict__)
@@ -327,7 +327,7 @@ def validate_probtype(probtype, pdparam):
     pd = probtype.pdfromflat(M)
     calcloglik = U.function([X, M], pd.logp(X))
     calcent = U.function([M], pd.entropy())
-    Xval = tf.get_default_session().run(pd.sample(), feed_dict={M:Mval})
+    Xval = tf.compat.v1.get_default_session().run(pd.sample(), feed_dict={M:Mval})
     logliks = calcloglik(Xval, Mval)
     entval_ll = - logliks.mean() #pylint: disable=E1101
     entval_ll_stderr = logliks.std() / np.sqrt(N) #pylint: disable=E1101

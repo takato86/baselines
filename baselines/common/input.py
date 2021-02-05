@@ -28,7 +28,7 @@ def observation_placeholder(ob_space, batch_size=None, name='Ob'):
     if dtype == np.int8:
         dtype = np.uint8
 
-    return tf.placeholder(shape=(batch_size,) + ob_space.shape, dtype=dtype, name=name)
+    return tf.compat.v1.placeholder(shape=(batch_size,) + ob_space.shape, dtype=dtype, name=name)
 
 
 def observation_input(ob_space, batch_size=None, name='Ob'):
@@ -49,7 +49,7 @@ def encode_observation(ob_space, placeholder):
 
     ob_space: gym.Space             observation space
 
-    placeholder: tf.placeholder     observation input placeholder
+    placeholder: tf.compat.v1.placeholder     observation input placeholder
     '''
     if isinstance(ob_space, Discrete):
         return tf.to_float(tf.one_hot(placeholder, ob_space.n))

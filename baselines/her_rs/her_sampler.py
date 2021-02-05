@@ -1,6 +1,45 @@
 import numpy as np
 
 
+def make_sample_ddpg_transitions(replay_strategy, replay_k, reward_fun):
+    # TODO This code is the quick-fix solution
+
+    def _sample_ddpg_transitions(episode_batch, batch_size_in_transitions):
+        """episode_batch is {key: array(buffer_size x T x dim_key)}
+        """
+        T = episode_batch['u'].shape[1]
+        rollout_batch_size = episode_batch['u'].shape[0]
+        batch_size = batch_size_in_transitions
+
+        # Select which episodes and time steps to use.
+        episode_idxs = np.random.randint(0, rollout_batch_size, batch_size)
+        t_samples = np.random.randint(T, size=batch_size)
+        transitions = {key: episode_batch[key][episode_idxs, t_samples].copy()
+                       for key in episode_batch.keys()}
+
+        transitions['rs'] = transitions['rs'].flatten()
+
+        # Reconstruct info dictionary for reward  computation.
+        info = {}
+        for key, value in transitions.items():
+            if key.startswith('info_'):
+                info[key.replace('info_', '')] = value
+
+        # Re-compute reward since we may have substituted the goal.
+        reward_params = {k: transitions[k] for k in ['ag_2', 'g']}
+        reward_params['info'] = info
+        transitions['r'] = reward_fun(**reward_params)
+        transitions = {k: transitions[k].reshape(batch_size, *transitions[k].shape[1:])
+                       for k in transitions.keys()}
+
+        assert(transitions['u'].shape[0] == batch_size_in_transitions)
+
+        return transitions
+
+    return _sample_ddpg_transitions
+
+
+
 def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
     """Creates a sample function that can be used for HER experience replay.
 

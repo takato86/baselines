@@ -22,7 +22,7 @@ class Normalizer:
         self.size = size
         self.eps = eps
         self.default_clip_range = default_clip_range
-        self.sess = sess if sess is not None else tf.get_default_session()
+        self.sess = sess if sess is not None else tf.compat.v1.get_default_session()
 
         self.local_sum = np.zeros(self.size, np.float32)
         self.local_sumsq = np.zeros(self.size, np.float32)
@@ -43,9 +43,9 @@ class Normalizer:
         self.std = tf.get_variable(
             initializer=tf.ones_initializer(), shape=(self.size,), name='std',
             trainable=False, dtype=tf.float32)
-        self.count_pl = tf.placeholder(name='count_pl', shape=(1,), dtype=tf.float32)
-        self.sum_pl = tf.placeholder(name='sum_pl', shape=(self.size,), dtype=tf.float32)
-        self.sumsq_pl = tf.placeholder(name='sumsq_pl', shape=(self.size,), dtype=tf.float32)
+        self.count_pl = tf.compat.v1.placeholder(name='count_pl', shape=(1,), dtype=tf.float32)
+        self.sum_pl = tf.compat.v1.placeholder(name='sum_pl', shape=(self.size,), dtype=tf.float32)
+        self.sumsq_pl = tf.compat.v1.placeholder(name='sumsq_pl', shape=(self.size,), dtype=tf.float32)
 
         self.update_op = tf.group(
             self.count_tf.assign_add(self.count_pl),
@@ -53,8 +53,8 @@ class Normalizer:
             self.sumsq_tf.assign_add(self.sumsq_pl)
         )
         self.recompute_op = tf.group(
-            tf.assign(self.mean, self.sum_tf / self.count_tf),
-            tf.assign(self.std, tf.sqrt(tf.maximum(
+            tf.compat.v1.assign(self.mean, self.sum_tf / self.count_tf),
+            tf.compat.v1.assign(self.std, tf.sqrt(tf.maximum(
                 tf.square(self.eps),
                 self.sumsq_tf / self.count_tf - tf.square(self.sum_tf / self.count_tf)
             ))),

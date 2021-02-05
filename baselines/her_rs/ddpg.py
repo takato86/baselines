@@ -85,12 +85,12 @@ class DDPG(object):
         self.stage_shapes = stage_shapes
 
         # Create network.
-        with tf.variable_scope(self.scope):
+        with tf.compat.v1.variable_scope(self.scope):
             self.staging_tf = StagingArea(
                 dtypes=[tf.float32 for _ in self.stage_shapes.keys()],
                 shapes=list(self.stage_shapes.values()))
             self.buffer_ph_tf = [
-                tf.placeholder(tf.float32, shape=shape) for shape in self.stage_shapes.values()]
+                tf.compat.v1.placeholder(tf.float32, shape=shape) for shape in self.stage_shapes.values()]
             self.stage_op = self.staging_tf.put(self.buffer_ph_tf)
 
             self._create_network(reuse=reuse)
@@ -304,12 +304,12 @@ class DDPG(object):
         self.buffer.clear_buffer()
 
     def _vars(self, scope):
-        res = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.scope + '/' + scope)
+        res = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.scope + '/' + scope)
         assert len(res) > 0
         return res
 
     def _global_vars(self, scope):
-        res = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope + '/' + scope)
+        res = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope=self.scope + '/' + scope)
         return res
 
     def _create_network(self, reuse=False):
@@ -317,11 +317,11 @@ class DDPG(object):
         self.sess = tf_util.get_session()
 
         # running averages
-        with tf.variable_scope('o_stats') as vs:
+        with tf.compat.v1.variable_scope('o_stats') as vs:
             if reuse:
                 vs.reuse_variables()
             self.o_stats = Normalizer(self.dimo, self.norm_eps, self.norm_clip, sess=self.sess)
-        with tf.variable_scope('g_stats') as vs:
+        with tf.compat.v1.variable_scope('g_stats') as vs:
             if reuse:
                 vs.reuse_variables()
             self.g_stats = Normalizer(self.dimg, self.norm_eps, self.norm_clip, sess=self.sess)
@@ -338,12 +338,12 @@ class DDPG(object):
         mask = np.concatenate((np.zeros(self.batch_size - self.demo_batch_size), np.ones(self.demo_batch_size)), axis = 0)
 
         # networks
-        with tf.variable_scope('main') as vs:
+        with tf.compat.v1.variable_scope('main') as vs:
             if reuse:
                 vs.reuse_variables()
             self.main = self.create_actor_critic(batch_tf, net_type='main', **self.__dict__)
             vs.reuse_variables()
-        with tf.variable_scope('target') as vs:
+        with tf.compat.v1.variable_scope('target') as vs:
             if reuse:
                 vs.reuse_variables()
             target_batch_tf = batch_tf.copy()
@@ -401,7 +401,7 @@ class DDPG(object):
             map(lambda v: v[0].assign(self.polyak * v[0] + (1. - self.polyak) * v[1]), zip(self.target_vars, self.main_vars)))
 
         # initialize all variables
-        tf.variables_initializer(self._global_vars('')).run()
+        tf.compat.v1.variables_initializer(self._global_vars('')).run()
         self._sync_optimizers()
         self._init_target_net()
 
@@ -442,7 +442,7 @@ class DDPG(object):
         # load TF variables
         vars = [x for x in self._global_vars('') if 'buffer' not in x.name]
         assert(len(vars) == len(state["tf"]))
-        node = [tf.assign(var, val) for var, val in zip(vars, state["tf"])]
+        node = [tf.compat.v1.assign(var, val) for var, val in zip(vars, state["tf"])]
         self.sess.run(node)
 
     def save(self, save_path):

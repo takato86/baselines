@@ -40,7 +40,7 @@ class CnnPolicy(object):
         self.state_in = []
         self.state_out = []
 
-        stochastic = tf.placeholder(dtype=tf.bool, shape=())
+        stochastic = tf.compat.v1.placeholder(dtype=tf.bool, shape=())
         ac = self.pd.sample() # XXX
         self._act = U.function([stochastic, ob], [ac, self.vpred])
 

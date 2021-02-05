@@ -28,10 +28,10 @@ class Model(object):
             self.model2 = train_model = policy(nenvs*nsteps, nsteps, sess=sess)
 
         A = train_model.pdtype.sample_placeholder([None])
-        ADV = tf.placeholder(tf.float32, [nbatch])
-        R = tf.placeholder(tf.float32, [nbatch])
-        PG_LR = tf.placeholder(tf.float32, [])
-        VF_LR = tf.placeholder(tf.float32, [])
+        ADV = tf.compat.v1.placeholder(tf.float32, [nbatch])
+        R = tf.compat.v1.placeholder(tf.float32, [nbatch])
+        PG_LR = tf.compat.v1.placeholder(tf.float32, [])
+        VF_LR = tf.compat.v1.placeholder(tf.float32, [])
 
         neglogpac = train_model.pd.neglogp(A)
         self.logits = train_model.pi

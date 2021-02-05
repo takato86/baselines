@@ -73,7 +73,7 @@ def test_MpiAdam():
     update_op = tf.train.AdamOptimizer(stepsize).minimize(loss)
     do_update = U.function([], loss, updates=[update_op])
 
-    tf.get_default_session().run(tf.global_variables_initializer())
+    tf.compat.v1.get_default_session().run(tf.global_variables_initializer())
     losslist_ref = []
     for i in range(10):
         l = do_update()
@@ -83,7 +83,7 @@ def test_MpiAdam():
 
 
     tf.set_random_seed(0)
-    tf.get_default_session().run(tf.global_variables_initializer())
+    tf.compat.v1.get_default_session().run(tf.global_variables_initializer())
 
     var_list = [a,b]
     lossandgrad = U.function([], [loss, U.flatgrad(loss, var_list)])

@@ -42,9 +42,9 @@ class TfRunningMeanStd(object):
     def __init__(self, epsilon=1e-4, shape=(), scope=''):
         sess = get_session()
 
-        self._new_mean = tf.placeholder(shape=shape, dtype=tf.float64)
-        self._new_var = tf.placeholder(shape=shape, dtype=tf.float64)
-        self._new_count = tf.placeholder(shape=(), dtype=tf.float64)
+        self._new_mean = tf.compat.v1.placeholder(shape=shape, dtype=tf.float64)
+        self._new_var = tf.compat.v1.placeholder(shape=shape, dtype=tf.float64)
+        self._new_count = tf.compat.v1.placeholder(shape=(), dtype=tf.float64)
 
 
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):

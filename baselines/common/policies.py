@@ -53,7 +53,7 @@ class PolicyWithValue(object):
 
         # Calculate the neg log of our probability
         self.neglogp = self.pd.neglogp(self.action)
-        self.sess = sess or tf.get_default_session()
+        self.sess = sess or tf.compat.v1.get_default_session()
 
         if estimate_q:
             assert isinstance(env.action_space, gym.spaces.Discrete)

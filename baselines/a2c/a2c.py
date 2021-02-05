@@ -46,10 +46,10 @@ class Model(object):
             # train_model is used to train our network
             train_model = policy(nbatch, nsteps, sess)
 
-        A = tf.placeholder(train_model.action.dtype, train_model.action.shape)
-        ADV = tf.placeholder(tf.float32, [nbatch])
-        R = tf.placeholder(tf.float32, [nbatch])
-        LR = tf.placeholder(tf.float32, [])
+        A = tf.compat.v1.placeholder(train_model.action.dtype, train_model.action.shape)
+        ADV = tf.compat.v1.placeholder(tf.float32, [nbatch])
+        R = tf.compat.v1.placeholder(tf.float32, [nbatch])
+        LR = tf.compat.v1.placeholder(tf.float32, [])
 
         # Calculate the loss
         # Total loss = Policy gradient loss - entropy * entropy coefficient + Value coefficient * value loss

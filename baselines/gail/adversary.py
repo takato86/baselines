@@ -54,10 +54,10 @@ class TransitionClassifier(object):
                                       self.losses + [U.flatgrad(self.total_loss, var_list)])
 
     def build_ph(self):
-        self.generator_obs_ph = tf.placeholder(tf.float32, (None, ) + self.observation_shape, name="observations_ph")
-        self.generator_acs_ph = tf.placeholder(tf.float32, (None, ) + self.actions_shape, name="actions_ph")
-        self.expert_obs_ph = tf.placeholder(tf.float32, (None, ) + self.observation_shape, name="expert_observations_ph")
-        self.expert_acs_ph = tf.placeholder(tf.float32, (None, ) + self.actions_shape, name="expert_actions_ph")
+        self.generator_obs_ph = tf.compat.v1.placeholder(tf.float32, (None, ) + self.observation_shape, name="observations_ph")
+        self.generator_acs_ph = tf.compat.v1.placeholder(tf.float32, (None, ) + self.actions_shape, name="actions_ph")
+        self.expert_obs_ph = tf.compat.v1.placeholder(tf.float32, (None, ) + self.observation_shape, name="expert_observations_ph")
+        self.expert_acs_ph = tf.compat.v1.placeholder(tf.float32, (None, ) + self.actions_shape, name="expert_actions_ph")
 
     def build_graph(self, obs_ph, acs_ph, reuse=False):
         with tf.variable_scope(self.scope):
@@ -77,7 +77,7 @@ class TransitionClassifier(object):
         return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
 
     def get_reward(self, obs, acs):
-        sess = tf.get_default_session()
+        sess = tf.compat.v1.get_default_session()
         if len(obs.shape) == 1:
             obs = np.expand_dims(obs, 0)
         if len(acs.shape) == 1:

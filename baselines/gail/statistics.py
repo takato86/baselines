@@ -19,12 +19,12 @@ class stats():
         self.histogram_summaries = []
         with tf.variable_scope('summary'):
             for k in scalar_keys:
-                ph = tf.placeholder('float32', None, name=k+'.scalar.summary')
+                ph = tf.compat.v1.placeholder('float32', None, name=k+'.scalar.summary')
                 sm = tf.summary.scalar(k+'.scalar.summary', ph)
                 self.scalar_summaries_ph.append(ph)
                 self.scalar_summaries.append(sm)
             for k in histogram_keys:
-                ph = tf.placeholder('float32', None, name=k+'.histogram.summary')
+                ph = tf.compat.v1.placeholder('float32', None, name=k+'.histogram.summary')
                 sm = tf.summary.scalar(k+'.histogram.summary', ph)
                 self.histogram_summaries_ph.append(ph)
                 self.histogram_summaries.append(sm)

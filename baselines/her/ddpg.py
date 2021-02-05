@@ -89,7 +89,7 @@ class DDPG(object):
                 dtypes=[tf.float32 for _ in self.stage_shapes.keys()],
                 shapes=list(self.stage_shapes.values()))
             self.buffer_ph_tf = [
-                tf.placeholder(tf.float32, shape=shape) for shape in self.stage_shapes.values()]
+                tf.compat.v1.placeholder(tf.float32, shape=shape) for shape in self.stage_shapes.values()]
             self.stage_op = self.staging_tf.put(self.buffer_ph_tf)
 
             self._create_network(reuse=reuse)
@@ -440,7 +440,7 @@ class DDPG(object):
         # load TF variables
         vars = [x for x in self._global_vars('') if 'buffer' not in x.name]
         assert(len(vars) == len(state["tf"]))
-        node = [tf.assign(var, val) for var, val in zip(vars, state["tf"])]
+        node = [tf.compat.v1.assign(var, val) for var, val in zip(vars, state["tf"])]
         self.sess.run(node)
 
     def save(self, save_path):

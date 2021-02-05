@@ -180,8 +180,8 @@ def learn(*,
     with tf.variable_scope("oldpi"):
         oldpi = policy(observ_placeholder=ob)
 
-    atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
-    ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
+    atarg = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
+    ret = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
 
     ac = pi.pdtype.sample_placeholder([None])
 
@@ -213,7 +213,7 @@ def learn(*,
     get_flat = U.GetFlat(var_list)
     set_from_flat = U.SetFromFlat(var_list)
     klgrads = tf.gradients(dist, var_list)
-    flat_tangent = tf.placeholder(dtype=tf.float32, shape=[None], name="flat_tan")
+    flat_tangent = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None], name="flat_tan")
     shapes = [var.get_shape().as_list() for var in var_list]
     start = 0
     tangents = []
@@ -224,7 +224,7 @@ def learn(*,
     gvp = tf.add_n([tf.reduce_sum(g*tangent) for (g, tangent) in zipsame(klgrads, tangents)]) #pylint: disable=E1111
     fvp = U.flatgrad(gvp, var_list)
 
-    assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
+    assign_old_eq_new = U.function([],[], updates=[tf.compat.v1.assign(oldv, newv)
         for (oldv, newv) in zipsame(get_variables("oldpi"), get_variables("pi"))])
 
     compute_losses = U.function([ob, ac, atarg], losses)

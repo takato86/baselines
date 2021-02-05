@@ -3,6 +3,7 @@ import re
 import multiprocessing
 import os.path as osp
 import gym
+import gym_m2s
 from collections import defaultdict
 import tensorflow as tf
 import numpy as np
@@ -89,7 +90,6 @@ def build_env(args):
     nenv = args.num_env or ncpu
     alg = args.alg
     seed = args.seed
-
     env_type, env_id = get_env_type(args)
 
     if env_type in {'atari', 'retro'}:
@@ -103,7 +103,7 @@ def build_env(args):
             env = VecFrameStack(env, frame_stack_size)
 
     else:
-        config = tf.ConfigProto(allow_soft_placement=True,
+        config = tf.compat.v1.ConfigProto(allow_soft_placement=True,
                                intra_op_parallelism_threads=1,
                                inter_op_parallelism_threads=1)
         config.gpu_options.allow_growth = True

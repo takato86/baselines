@@ -484,7 +484,7 @@ class KfacOptimizer():
                     stats_var, accumulateCoeff * stats_new, use_locking=True)
             else:
                 # exponential running averaging
-                update_op = tf.assign(
+                update_op = tf.compat.v1.assign(
                     stats_var, stats_var * self._stats_decay, use_locking=True)
                 update_op = tf.assign_add(
                     update_op, (1. - self._stats_decay) * stats_new, use_locking=True)
@@ -605,7 +605,7 @@ class KfacOptimizer():
         for i, (tensor, mark) in enumerate(zip(eigen_list, self.eigen_update_list)):
             stats_eigen_var = self.eigen_reverse_lookup[mark]
             updateOps.append(
-                tf.assign(stats_eigen_var, tensor, use_locking=True))
+                tf.compat.v1.assign(stats_eigen_var, tensor, use_locking=True))
 
         with tf.control_dependencies(updateOps):
             factor_step_op = tf.assign_add(self.factor_step, 1)
@@ -793,7 +793,7 @@ class KfacOptimizer():
         if KFAC_DEBUG:
             scaling = tf.Print(scaling, [tf.convert_to_tensor(
                 'clip: '), scaling, tf.convert_to_tensor(' vFv: '), vg])
-        with tf.control_dependencies([tf.assign(self.vFv, vg)]):
+        with tf.control_dependencies([tf.compat.v1.assign(self.vFv, vg)]):
             updatelist = [grad_dict[var] for var in varlist]
             for i, item in enumerate(updatelist):
                 updatelist[i] = scaling * item

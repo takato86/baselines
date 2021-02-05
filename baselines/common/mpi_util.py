@@ -22,7 +22,7 @@ def sync_from_root(sess, variables, comm=None):
     if comm is None: comm = MPI.COMM_WORLD
     import tensorflow as tf
     values = comm.bcast(sess.run(variables))
-    sess.run([tf.assign(var, val)
+    sess.run([tf.compat.v1.assign(var, val)
         for (var, val) in zip(variables, values)])
 
 def gpu_count():
