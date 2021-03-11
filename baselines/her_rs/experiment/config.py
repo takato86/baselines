@@ -269,6 +269,33 @@ def configure_dta(params):
     return rs
 
 
+def configure_rrs(params):
+    N_SUBGS = 2
+    env = cached_make_env(params['make_env'])
+    env.reset()
+    gamma = params['gamma']
+    lr = params['ddpg_params']['Q_lr']
+    n_obs = env.observation_space['observation'].shape[0]
+    clip_range = DEFAULT_PARAMS["ddpg_params"]['norm_clip']
+    subgs = [
+        np.random.uniform(low=-clip_range, high=clip_range, size=(n_obs,))
+        for _ in range(N_SUBGS)
+    ]
+    shaping_params = {
+        'vid': 'table',
+        'aggr_id': 'dta',
+        'values': {i: params['vinit'] for i in range(n_obs)},
+        'params': {
+            "env_id": env.spec.id,
+            "n_obs": 25,
+            "_range": 0.01,
+            "subgs": subgs
+        }
+    }
+    rs = SarsaRS(gamma, lr, env, shaping_params)
+    return rs
+
+
 def configure_srs(params):
     env = cached_make_env(params['make_env'])
     env.reset()

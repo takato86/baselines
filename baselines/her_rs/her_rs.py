@@ -152,6 +152,8 @@ def learn(*, network, env, total_timesteps,
         reward_shaping = config.configure_srs(params=params)
     elif "nrs" in param_shaping:
         reward_shaping = config.configure_nrs(params=params)
+    elif "rrs" in param_shaping:
+        reward_shaping = config.configure_rrs(params=params)
     else:
         reward_shaping = None
     policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, is_ddpg=params["is_ddpg"])
