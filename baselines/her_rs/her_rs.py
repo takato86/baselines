@@ -155,7 +155,6 @@ def learn(*, network, env, total_timesteps,
     else:
         reward_shaping = None
     policy = config.configure_ddpg(dims=dims, params=params, clip_return=clip_return, is_ddpg=params["is_ddpg"])
-
     if load_path is not None:
         tf_util.load_variables(load_path)
 
